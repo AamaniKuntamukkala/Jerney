@@ -2,9 +2,7 @@
 # Journey AKS Cluster - Direct Resources (with Terraform functions)
 # ==============================================================
 
-provider "azurerm" {
-  features {}
-}
+
 
 # ---- Locals ----
 locals {

@@ -16,6 +16,12 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 }
 
+variable "cluster_version" {
+  description = "Kubernetes version for AKS"
+  type        = string
+  default     = "1.29.0"
+}
+
 variable "node_count" {
   description = "Number of nodes in the default pool"
   type        = number

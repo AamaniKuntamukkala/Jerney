@@ -1,8 +1,14 @@
 # ==============================================================
-# Journey AKS Cluster - Modular Approach (corrected for Azure module)
+# Journey AKS Cluster - Modular Approach (direct resources)
 # ==============================================================
 
+provider "azurerm" {
+  features {}
+}
+
+# ---- Locals ----
 locals {
+  # Create 3 subnets from the base CIDR
   subnet_prefixes = [
     for i in range(3) : cidrsubnet(var.vpc_cidr, 8, i)
   ]
@@ -10,40 +16,90 @@ locals {
   subnet_names = [
     for i in range(3) : "subnet-${i}"
   ]
+
+  # Define multiple node pools dynamically
+  node_pools = [
+    {
+      name       = "system"
+      node_count = var.node_count
+      vm_size    = var.node_vm_size
+    },
+    {
+      name       = "general-purpose"
+      node_count = 2
+      vm_size    = "Standard_DS3_v2"
+    },
+    {
+      name       = "compute"
+      node_count = 1
+      vm_size    = "Standard_DS4_v2"
+    }
+  ]
+}
+
+# ---- Resource Group ----
+resource "azurerm_resource_group" "rg" {
+  name     = "${var.cluster_name}-rg"
+  location = var.location
 }
 
 # ---- VNet ----
-module "vnet" {
-  source  = "Azure/vnet/azurerm"
-  version = "4.0.0"
-
-  resource_group_name = "${var.cluster_name}-rg"
-  vnet_name           = "${var.cluster_name}-vnet"
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.cluster_name}-vnet"
   address_space       = [var.vpc_cidr]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
 
-  subnet_prefixes = local.subnet_prefixes
-  subnet_names    = local.subnet_names
+# ---- Subnets ----
+resource "azurerm_subnet" "subnets" {
+  for_each             = toset(local.subnet_names)
+  name                 = each.value
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [local.subnet_prefixes[index(local.subnet_names, each.value)]]
 }
 
 # ---- AKS Cluster ----
-module "aks" {
-  source  = "Azure/aks/azurerm"
-  version = "6.0.0"
-
-  prefix              = var.cluster_name
-  resource_group_name = module.vnet.resource_group_name
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = var.cluster_name
   location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  dns_prefix          = "${var.cluster_name}-dns"
 
-  # Networking: only one subnet supported here
-  vnet_subnet_id = module.vnet.subnet_ids[0]
+  default_node_pool {
+    name           = local.node_pools[0].name
+    node_count     = local.node_pools[0].node_count
+    vm_size        = local.node_pools[0].vm_size
+    vnet_subnet_id = values(azurerm_subnet.subnets)[0].id
+  }
 
-  # Node pool sizing
-  agents_size  = var.node_vm_size
-  agents_count = var.node_count
+  identity {
+    type = "SystemAssigned"
+  }
 
-  # Kubernetes version
-  kubernetes_version = var.cluster_version
-
-  # RBAC
   role_based_access_control_enabled = true
+
+  oms_agent {
+    log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+  }
+}
+
+# ---- Log Analytics Workspace ----
+resource "azurerm_log_analytics_workspace" "law" {
+  name                = "${var.cluster_name}-law"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+# ---- Additional Node Pools ----
+resource "azurerm_kubernetes_cluster_node_pool" "extra_pools" {
+  for_each            = { for np in slice(local.node_pools, 1, length(local.node_pools)) : np.name => np }
+  name                = each.value.name
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
+  vm_size             = each.value.vm_size
+  node_count          = each.value.node_count
+  vnet_subnet_id      = values(azurerm_subnet.subnets)[0].id
 }

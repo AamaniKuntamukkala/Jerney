@@ -3,4 +3,4 @@ location        = "eastus"
 vpc_cidr        = "10.1.0.0/16"
 cluster_version = "1.34.3"
 node_count      = 3
-node_vm_size    = "Standard_DS3_v2"
+node_vm_size    = "Standard_D4ads_v5"

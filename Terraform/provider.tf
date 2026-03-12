@@ -2,28 +2,36 @@ terraform {
   required_version = ">= 1.5.0"
 
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.80"
     }
   }
 
   # Uncomment and configure for remote state (recommended for teams)
-  # backend "s3" {
-  #   bucket         = "jerney-terraform-state"
-  #   key            = "eks/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "jerney-tf-lock"
-  #   encrypt        = true
+  # backend "azurerm" {
+  #   resource_group_name   = "tfstate-rg"
+  #   storage_account_name  = "tfstateaccount"
+  #   container_name        = "tfstate"
+  #   key                   = "aks/terraform.tfstate"
   # }
 }
 
-provider "aws" {
-  region = var.aws_region
+provider "azurerm" {
+  features {}
+
+  # Option 1: Use environment variables (recommended)
+  # Terraform automatically picks up ARM_SUBSCRIPTION_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID
+
+  # Option 2: Pass via variables (less secure, but explicit)
+  subscription_id = var.subscription_id
+  client_id       = var.client_id
+  client_secret   = var.client_secret
+  tenant_id       = var.tenant_id
 
   default_tags {
     tags = {
-      Project     = "Jerney"
+      Project     = "Journey"
       Environment = var.environment
       ManagedBy   = "Terraform"
     }

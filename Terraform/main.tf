@@ -1,5 +1,5 @@
 # ==============================================================
-# Journey AKS Cluster - Modular Approach (direct resources)
+# Journey AKS Cluster - Direct Resources (with Terraform functions)
 # ==============================================================
 
 provider "azurerm" {
@@ -60,6 +60,15 @@ resource "azurerm_subnet" "subnets" {
   address_prefixes     = [local.subnet_prefixes[index(local.subnet_names, each.value)]]
 }
 
+# ---- Log Analytics Workspace ----
+resource "azurerm_log_analytics_workspace" "law" {
+  name                = "${var.cluster_name}-law"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
 # ---- AKS Cluster ----
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = var.cluster_name
@@ -83,23 +92,16 @@ resource "azurerm_kubernetes_cluster" "aks" {
   oms_agent {
     log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
   }
-}
 
-# ---- Log Analytics Workspace ----
-resource "azurerm_log_analytics_workspace" "law" {
-  name                = "${var.cluster_name}-law"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
+  kubernetes_version = var.cluster_version
 }
 
 # ---- Additional Node Pools ----
 resource "azurerm_kubernetes_cluster_node_pool" "extra_pools" {
-  for_each            = { for np in slice(local.node_pools, 1, length(local.node_pools)) : np.name => np }
-  name                = each.value.name
+  for_each              = { for np in slice(local.node_pools, 1, length(local.node_pools)) : np.name => np }
+  name                  = each.value.name
   kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
-  vm_size             = each.value.vm_size
-  node_count          = each.value.node_count
-  vnet_subnet_id      = values(azurerm_subnet.subnets)[0].id
+  vm_size               = each.value.vm_size
+  node_count            = each.value.node_count
+  vnet_subnet_id        = values(azurerm_subnet.subnets)[0].id
 }

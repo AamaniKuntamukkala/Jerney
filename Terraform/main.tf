@@ -2,10 +2,6 @@
 # Journey AKS Cluster - Direct Resources (with Terraform functions)
 # ==============================================================
 
-provider "azurerm" {
-  features {}
-}
-
 # ---- Locals ----
 locals {
   # Create 3 subnets from the base CIDR

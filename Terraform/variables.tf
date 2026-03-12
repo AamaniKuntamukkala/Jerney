@@ -19,7 +19,7 @@ variable "vpc_cidr" {
 variable "cluster_version" {
   description = "Kubernetes version for AKS"
   type        = string
-  default     = "1.29.0"
+  default     = "1.34.3"
 }
 
 variable "node_count" {

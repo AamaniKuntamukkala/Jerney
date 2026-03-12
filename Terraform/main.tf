@@ -24,7 +24,7 @@ locals {
     },
     {
       name       = "gp"         # ✅ shortened from generalpurpose
-      node_count = 2
+      node_count = 1
       vm_size    = "Standard_B2ms"
     },
     {

@@ -21,7 +21,7 @@ locals {
       vm_size    = var.node_vm_size
     },
     {
-      name       = "general-purpose"
+      name       = "generalpurpose"
       node_count = 2
       vm_size    = "Standard_DS3_v2"
     },

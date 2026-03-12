@@ -25,12 +25,12 @@ locals {
     {
       name       = "gp"         # ✅ shortened from generalpurpose
       node_count = 2
-      vm_size    = "Standard_DS3_v2"
+      vm_size    = "Standard_B2ms"
     },
     {
       name       = "compute"    # ✅ valid
       node_count = 1
-      vm_size    = "Standard_DS4_v2"
+      vm_size    = "Standard_B2ms"
     }
   ]
 }

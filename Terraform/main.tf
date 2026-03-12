@@ -2,6 +2,10 @@
 # Journey AKS Cluster - Direct Resources (with Terraform functions)
 # ==============================================================
 
+provider "azurerm" {
+  features {}
+}
+
 # ---- Locals ----
 locals {
   # Create 3 subnets from the base CIDR
@@ -13,20 +17,20 @@ locals {
     for i in range(3) : "subnet-${i}"
   ]
 
-  # Define multiple node pools dynamically
+  # Define multiple node pools dynamically (names must be <=12 chars, lowercase, alphanumeric)
   node_pools = [
     {
-      name       = "system"
+      name       = "system"     # ✅ valid
       node_count = var.node_count
       vm_size    = var.node_vm_size
     },
     {
-      name       = "generalpurpose"
+      name       = "gp"         # ✅ shortened from generalpurpose
       node_count = 2
       vm_size    = "Standard_DS3_v2"
     },
     {
-      name       = "compute"
+      name       = "compute"    # ✅ valid
       node_count = 1
       vm_size    = "Standard_DS4_v2"
     }

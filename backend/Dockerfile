@@ -2,7 +2,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN RUN npm install --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 
 # ---- Production stage ----

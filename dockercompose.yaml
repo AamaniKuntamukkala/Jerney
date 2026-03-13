@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  # ------------------------------
+  # PostgreSQL Database
+  # ------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: jerney-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jerney_user
+      POSTGRES_PASSWORD: jerney_pass_2026
+      POSTGRES_DB: jerney_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jerney_user -d jerney_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    tmpfs:
+      - /tmp
+      - /run
+
+  # ------------------------------
+  # Backend
+  # ------------------------------
+  backend:
+    container_name: jerney-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://jerney_user:jerney_pass_2026@db:5432/jerney_db
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8081:3000"
+    restart: unless-stopped
+
+  # ------------------------------
+  # Frontend (served via nginx)
+  # ------------------------------
+  frontend:
+    container_name: jerney-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+   driver: local
